@@ -86,6 +86,10 @@ public sealed class MonitorsController(IMonitorService monitorService) : Control
         {
             return BadRequest(new { error = exception.Message });
         }
+        catch (ConflictException exception)
+        {
+            return Conflict(new { error = exception.Message });
+        }
     }
 }
 
