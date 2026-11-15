@@ -77,7 +77,7 @@ public sealed class Monitor
 
     private static void ValidateRange(int value, int minimum, int maximum, string parameterName)
     {
-        if (value is < minimum or > maximum)
+        if (value < minimum || value > maximum)
         {
             throw new DomainException($"{parameterName} must be between {minimum} and {maximum}.");
         }
