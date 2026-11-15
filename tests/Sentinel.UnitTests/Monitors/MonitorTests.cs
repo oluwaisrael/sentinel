@@ -79,6 +79,14 @@ public sealed class MonitorTests
     }
 
     [Fact]
+    public void Create_rejects_blank_url()
+    {
+        var action = () => DomainMonitor.Create("user-1", "API", " ", 60, 5_000);
+
+        action.Should().Throw<DomainException>().WithMessage("*url*");
+    }
+
+    [Fact]
     public void Update_changes_configuration_and_state()
     {
         var monitor = DomainMonitor.Create("user-1", "API", "https://api.example.com", 60, 5_000);
