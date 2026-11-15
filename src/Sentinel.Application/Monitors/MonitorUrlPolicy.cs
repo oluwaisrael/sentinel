@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 
 namespace Sentinel.Application.Monitors;
 
@@ -25,7 +26,20 @@ public static class MonitorUrlPolicy
         return !IPAddress.TryParse(uri.Host, out var address) || IsPublicAddress(address);
     }
 
-    private static bool IsPublicAddress(IPAddress address)
+    public static async Task<IReadOnlyList<IPAddress>> ResolvePublicAddressesAsync(
+        string host,
+        CancellationToken cancellationToken)
+    {
+        if (IPAddress.TryParse(host, out var literalAddress))
+        {
+            return IsPublicAddress(literalAddress) ? [literalAddress] : [];
+        }
+
+        var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+        return addresses.Where(IsPublicAddress).Distinct().ToArray();
+    }
+
+    public static bool IsPublicAddress(IPAddress address)
     {
         if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.None) || address.Equals(IPAddress.IPv6None))
         {
