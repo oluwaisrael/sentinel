@@ -16,6 +16,14 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
     {
         EnsureAllowedUrl(request.Url);
 
+        var duplicateName = await dbContext.Monitors.AnyAsync(
+            monitor => monitor.OwnerId == ownerId && monitor.Name == request.Name.Trim(),
+            cancellationToken);
+        if (duplicateName)
+        {
+            throw new ConflictException("A monitor with this name already exists.");
+        }
+
         var monitor = DomainMonitor.Create(
             ownerId,
             request.Name,
