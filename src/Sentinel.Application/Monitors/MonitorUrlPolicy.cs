@@ -6,7 +6,8 @@ public static class MonitorUrlPolicy
 {
     public static bool IsAllowed(Uri uri)
     {
-        if (uri.Scheme is not (Uri.UriSchemeHttp or Uri.UriSchemeHttps) ||
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
             uri.IsFile ||
             !string.IsNullOrEmpty(uri.UserInfo) ||
             string.IsNullOrWhiteSpace(uri.Host))
