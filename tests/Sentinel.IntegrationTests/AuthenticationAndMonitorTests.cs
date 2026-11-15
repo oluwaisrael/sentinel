@@ -138,5 +138,20 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Registration_validation_rejects_weak_password()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Email = "validation@example.com",
+            Password = "short"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
 
