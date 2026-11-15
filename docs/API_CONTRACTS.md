@@ -2,6 +2,8 @@
 
 All request and response bodies are JSON. Validation failures return `400 Bad Request`; unauthenticated requests return `401`; a monitor that is not owned by the current user behaves as not found and returns `404`.
 
+`GET /health` is an unauthenticated liveness endpoint and returns `{ "status": "ok" }` when the API process is running.
+
 ## Configuration
 
 The API requires these external configuration values:
