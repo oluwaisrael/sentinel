@@ -30,7 +30,7 @@ public sealed class MonitoringBackgroundServiceTests
             NullLogger<MonitoringBackgroundService>.Instance);
 
         await worker.StartAsync(CancellationToken.None);
-        await store.Recorded.WaitAsync(TimeSpan.FromSeconds(2));
+        await store.Recorded.Task.WaitAsync(TimeSpan.FromSeconds(2));
         await worker.StopAsync(CancellationToken.None);
 
         checker.CallCount.Should().Be(1);
