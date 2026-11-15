@@ -63,6 +63,62 @@ public sealed class MonitorsController(IMonitorService monitorService) : Control
         }
     }
 
+    [HttpGet("{id:guid}/checks")]
+    public async Task<ActionResult<IReadOnlyList<MonitorCheckResponse>>> Checks(
+        Guid id,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 500)
+        {
+            return BadRequest(new { error = "limit must be between 1 and 500." });
+        }
+
+        var windowEnd = to ?? DateTimeOffset.UtcNow;
+        var windowStart = from ?? windowEnd.AddDays(-7);
+        if (windowStart > windowEnd || windowEnd - windowStart > TimeSpan.FromDays(31))
+        {
+            return BadRequest(new { error = "The check history window must be valid and no longer than 31 days." });
+        }
+
+        try
+        {
+            return Ok(await monitorService.GetChecksAsync(
+                CurrentUserId(), id, windowStart, windowEnd, limit, cancellationToken));
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpGet("{id:guid}/stats")]
+    public async Task<ActionResult<MonitorStatsResponse>> Stats(
+        Guid id,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        CancellationToken cancellationToken = default)
+    {
+        var windowEnd = to ?? DateTimeOffset.UtcNow;
+        var windowStart = from ?? windowEnd.AddDays(-7);
+        if (windowStart > windowEnd || windowEnd - windowStart > TimeSpan.FromDays(31))
+        {
+            return BadRequest(new { error = "The statistics window must be valid and no longer than 31 days." });
+        }
+
+        try
+        {
+            return Ok(await monitorService.GetStatsAsync(
+                CurrentUserId(), id, windowStart, windowEnd, cancellationToken));
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     private string CurrentUserId() =>
         User.FindFirstValue(ClaimTypes.NameIdentifier) ??
         User.FindFirstValue("sub") ??
