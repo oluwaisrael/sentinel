@@ -18,6 +18,15 @@ public sealed class MonitorTests
         monitor.Id.Should().NotBeEmpty();
     }
 
+    [Fact]
+    public void Create_trims_display_name_and_url()
+    {
+        var monitor = DomainMonitor.Create("user-1", "  Public API  ", "  https://api.example.com  ", 60, 5_000);
+
+        monitor.Name.Should().Be("Public API");
+        monitor.Url.Should().Be("https://api.example.com");
+    }
+
     [Theory]
     [InlineData(29)]
     [InlineData(86_401)]
