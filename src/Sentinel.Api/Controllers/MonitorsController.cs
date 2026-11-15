@@ -23,10 +23,19 @@ public sealed class MonitorsController(IMonitorService monitorService) : Control
     [HttpPost]
     public async Task<ActionResult<MonitorResponse>> Create(CreateMonitorRequest request, CancellationToken cancellationToken)
     {
-        var monitor = await ExecuteAsync(() => monitorService.CreateAsync(CurrentUserId(), request, cancellationToken));
-        return monitor.Value is not null
-            ? CreatedAtAction(nameof(Get), new { id = monitor.Value.Id }, monitor.Value)
-            : monitor;
+        try
+        {
+            var monitor = await monitorService.CreateAsync(CurrentUserId(), request, cancellationToken);
+            return CreatedAtAction(nameof(Get), new { id = monitor.Id }, monitor);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+        catch (DomainException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
     }
 
     [HttpPut("{id:guid}")]
