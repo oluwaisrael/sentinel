@@ -21,6 +21,13 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddOptions<MonitoringOptions>()
+            .Bind(configuration.GetSection(MonitoringOptions.SectionName))
+            .Validate(options => options.PollIntervalMilliseconds is >= 100 and <= 60_000, "Monitoring poll interval must be between 100ms and 60s.")
+            .Validate(options => options.MaxConcurrency is >= 1 and <= 32, "Monitoring concurrency must be between 1 and 32.")
+            .Validate(options => options.LeaseDurationSeconds is >= 10 and <= 300, "Monitoring lease must be between 10s and 5m.")
+            .Validate(options => options.SupportedIntervalSeconds == 60, "Only 60-second monitoring intervals are currently supported.")
+            .ValidateOnStart();
         services.AddHttpClient("monitor-checks", client =>
             {
                 client.Timeout = Timeout.InfiniteTimeSpan;

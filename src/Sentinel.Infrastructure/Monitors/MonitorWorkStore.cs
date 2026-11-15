@@ -1,12 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Sentinel.Application.Monitoring;
 using Sentinel.Domain.Checks;
 using Sentinel.Infrastructure.Persistence;
 
 namespace Sentinel.Infrastructure.Monitors;
 
-public sealed class MonitorWorkStore(ApplicationDbContext dbContext) : IMonitorWorkStore
+public sealed class MonitorWorkStore(
+    ApplicationDbContext dbContext,
+    IOptions<MonitoringOptions> options) : IMonitorWorkStore
 {
+    private readonly MonitoringOptions monitoringOptions = options.Value;
+
     public async Task<MonitorLease?> TryClaimDueAsync(
         DateTimeOffset now,
         TimeSpan leaseDuration,
@@ -23,6 +28,7 @@ public sealed class MonitorWorkStore(ApplicationDbContext dbContext) : IMonitorW
                 FROM "monitors"
                 WHERE "IsEnabled" = TRUE
                   AND "NextCheckAt" <= {now}
+                  AND "IntervalSeconds" = {monitoringOptions.SupportedIntervalSeconds}
                   AND ("LeaseExpiresAt" IS NULL OR "LeaseExpiresAt" < {now})
                 ORDER BY "NextCheckAt"
                 FOR UPDATE SKIP LOCKED
