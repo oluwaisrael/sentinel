@@ -19,6 +19,7 @@ public sealed class Monitor
         IsEnabled = true;
         CreatedAt = DateTimeOffset.UtcNow;
         UpdatedAt = CreatedAt;
+        NextCheckAt = CreatedAt;
     }
 
     public Guid Id { get; private set; }
@@ -38,6 +39,12 @@ public sealed class Monitor
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    public DateTimeOffset NextCheckAt { get; private set; }
+
+    public Guid? LeaseId { get; private set; }
+
+    public DateTimeOffset? LeaseExpiresAt { get; private set; }
 
     public static Monitor Create(string ownerId, string name, string url, int intervalSeconds, int timeoutMilliseconds)
     {
@@ -62,6 +69,22 @@ public sealed class Monitor
         IntervalSeconds = intervalSeconds;
         TimeoutMilliseconds = timeoutMilliseconds;
         IsEnabled = isEnabled;
+        NextCheckAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public bool IsLeaseOwnedBy(Guid leaseId) => LeaseId == leaseId;
+
+    public void CompleteLease(Guid leaseId, DateTimeOffset nextCheckAt)
+    {
+        if (!IsLeaseOwnedBy(leaseId))
+        {
+            throw new DomainException("The monitor lease is no longer owned by this worker.");
+        }
+
+        LeaseId = null;
+        LeaseExpiresAt = null;
+        NextCheckAt = nextCheckAt;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
