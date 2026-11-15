@@ -46,6 +46,14 @@ public sealed class MonitorTests
     }
 
     [Fact]
+    public void Create_rejects_timeout_below_minimum()
+    {
+        var action = () => DomainMonitor.Create("user-1", "API", "https://api.example.com", 60, 99);
+
+        action.Should().Throw<DomainException>().WithMessage("*timeoutMilliseconds*");
+    }
+
+    [Fact]
     public void Update_changes_configuration_and_state()
     {
         var monitor = DomainMonitor.Create("user-1", "API", "https://api.example.com", 60, 5_000);
