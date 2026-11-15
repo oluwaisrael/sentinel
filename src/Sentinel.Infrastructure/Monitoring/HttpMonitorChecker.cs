@@ -8,7 +8,7 @@ namespace Sentinel.Infrastructure.Monitoring;
 
 public sealed class HttpMonitorChecker(IHttpClientFactory httpClientFactory) : IMonitorChecker
 {
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan MaximumRequestTimeout = TimeSpan.FromSeconds(5);
 
     public async Task<MonitorCheckOutcome> CheckAsync(
         MonitorLease lease,
@@ -38,7 +38,9 @@ public sealed class HttpMonitorChecker(IHttpClientFactory httpClientFactory) : I
         }
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(RequestTimeout);
+        timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(Math.Min(
+            MaximumRequestTimeout.TotalMilliseconds,
+            lease.TimeoutMilliseconds)));
         var stopwatch = Stopwatch.StartNew();
 
         try
