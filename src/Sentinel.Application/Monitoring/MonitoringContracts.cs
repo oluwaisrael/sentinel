@@ -11,6 +11,19 @@ public static class CheckErrorTypes
     public const string Unexpected = "Unexpected";
 }
 
+public sealed class MonitoringOptions
+{
+    public const string SectionName = "Monitoring";
+
+    public int PollIntervalMilliseconds { get; init; } = 1_000;
+
+    public int MaxConcurrency { get; init; } = 4;
+
+    public int LeaseDurationSeconds { get; init; } = 30;
+
+    public int SupportedIntervalSeconds { get; init; } = 60;
+}
+
 public sealed record MonitorLease(
     Guid MonitorId,
     string Url,
