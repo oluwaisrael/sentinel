@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Sentinel.Application.Common;
+using Sentinel.Application.Monitoring;
 using Sentinel.Application.Monitors;
 using Sentinel.Domain.Monitors;
 using Sentinel.Infrastructure.Persistence;
@@ -93,6 +94,69 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
         var monitor = await GetOwnedAsync(ownerId, monitorId, cancellationToken);
         dbContext.Monitors.Remove(monitor);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MonitorCheckResponse>> GetChecksAsync(
+        string ownerId,
+        Guid monitorId,
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        await GetOwnedAsync(ownerId, monitorId, cancellationToken);
+
+        var query = dbContext.CheckResults
+            .AsNoTracking()
+            .Where(result => result.MonitorId == monitorId);
+
+        if (from.HasValue)
+        {
+            query = query.Where(result => result.CheckedAt >= from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            query = query.Where(result => result.CheckedAt <= to.Value);
+        }
+
+        return await query
+            .OrderByDescending(result => result.CheckedAt)
+            .Take(limit)
+            .Select(result => new MonitorCheckResponse(
+                result.CheckedAt,
+                result.StatusCode,
+                result.LatencyMs,
+                result.IsHealthy,
+                result.ErrorType))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<MonitorStatsResponse> GetStatsAsync(
+        string ownerId,
+        Guid monitorId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken)
+    {
+        await GetOwnedAsync(ownerId, monitorId, cancellationToken);
+
+        var query = dbContext.CheckResults
+            .AsNoTracking()
+            .Where(result => result.MonitorId == monitorId && result.CheckedAt >= from && result.CheckedAt <= to);
+        var totalChecks = await query.CountAsync(cancellationToken);
+        var healthyChecks = await query.CountAsync(result => result.IsHealthy, cancellationToken);
+        var averageLatency = await query
+            .Where(result => result.LatencyMs.HasValue)
+            .AverageAsync(result => (double?)result.LatencyMs, cancellationToken);
+
+        return new MonitorStatsResponse(
+            from,
+            to,
+            totalChecks,
+            healthyChecks,
+            totalChecks == 0 ? 0 : healthyChecks * 100d / totalChecks,
+            averageLatency);
     }
 
     private async Task<DomainMonitor> GetOwnedAsync(string ownerId, Guid monitorId, CancellationToken cancellationToken)
