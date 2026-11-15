@@ -44,3 +44,18 @@ public sealed record MonitorResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record MonitorCheckResponse(
+    DateTimeOffset CheckedAt,
+    int? StatusCode,
+    int? LatencyMs,
+    bool IsHealthy,
+    string ErrorType);
+
+public sealed record MonitorStatsResponse(
+    DateTimeOffset WindowStart,
+    DateTimeOffset WindowEnd,
+    int TotalChecks,
+    int HealthyChecks,
+    double UptimePercentage,
+    double? AverageLatencyMs);
+
