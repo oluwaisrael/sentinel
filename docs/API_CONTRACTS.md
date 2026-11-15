@@ -52,6 +52,8 @@ All monitor endpoints require authentication.
 - `PUT /api/monitors/{id}` — update an owned monitor.
 - `DELETE /api/monitors/{id}` — delete an owned monitor; returns `204 No Content`.
 
+Monitor names are unique per user. Creating a duplicate name returns `409 Conflict`.
+
 Create/update body:
 
 ```json
