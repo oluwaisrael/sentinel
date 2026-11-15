@@ -153,5 +153,25 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Creating_duplicate_monitor_name_returns_conflict()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+        var email = $"duplicate-{Guid.NewGuid():N}@example.com";
+        const string password = "Strong-password-123!";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = email, Password = password });
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = email, Password = password });
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        var request = new CreateMonitorRequest { Name = "Unique API", Url = "https://api.example.com/health" };
+
+        var first = await client.PostAsJsonAsync("/api/monitors", request);
+        var second = await client.PostAsJsonAsync("/api/monitors", request);
+
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
 }
 
