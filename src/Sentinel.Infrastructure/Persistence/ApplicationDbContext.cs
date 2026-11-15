@@ -2,19 +2,20 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Sentinel.Domain.Monitors;
 using Sentinel.Infrastructure.Identity;
+using DomainMonitor = Sentinel.Domain.Monitors.Monitor;
 
 namespace Sentinel.Infrastructure.Persistence;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
-    public DbSet<Monitor> Monitors => Set<Monitor>();
+    public DbSet<DomainMonitor> Monitors => Set<DomainMonitor>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<Monitor>(entity =>
+        builder.Entity<DomainMonitor>(entity =>
         {
             entity.ToTable("monitors");
             entity.HasKey(monitor => monitor.Id);

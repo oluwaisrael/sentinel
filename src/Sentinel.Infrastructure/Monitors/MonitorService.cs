@@ -3,6 +3,7 @@ using Sentinel.Application.Common;
 using Sentinel.Application.Monitors;
 using Sentinel.Domain.Monitors;
 using Sentinel.Infrastructure.Persistence;
+using DomainMonitor = Sentinel.Domain.Monitors.Monitor;
 
 namespace Sentinel.Infrastructure.Monitors;
 
@@ -15,7 +16,7 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
     {
         EnsureAllowedUrl(request.Url);
 
-        var monitor = Monitor.Create(
+        var monitor = DomainMonitor.Create(
             ownerId,
             request.Name,
             request.Url,
@@ -78,7 +79,7 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Monitor> GetOwnedAsync(string ownerId, Guid monitorId, CancellationToken cancellationToken)
+    private async Task<DomainMonitor> GetOwnedAsync(string ownerId, Guid monitorId, CancellationToken cancellationToken)
     {
         var monitor = await dbContext.Monitors
             .SingleOrDefaultAsync(
@@ -96,7 +97,7 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
         }
     }
 
-    private static MonitorResponse Map(Monitor monitor) => new(
+    private static MonitorResponse Map(DomainMonitor monitor) => new(
         monitor.Id,
         monitor.Name,
         monitor.Url,
