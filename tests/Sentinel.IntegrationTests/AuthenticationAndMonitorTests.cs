@@ -18,7 +18,7 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
         var email = $"user-{Guid.NewGuid():N}@example.com";
 
         var registration = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, "Strong-password-123!"));
-        registration.StatusCode.Should().Be(HttpStatusCode.Created);
+        registration.StatusCode.Should().Be(HttpStatusCode.Created, await registration.Content.ReadAsStringAsync());
 
         var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, "Strong-password-123!"));
         login.StatusCode.Should().Be(HttpStatusCode.OK);
