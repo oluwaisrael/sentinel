@@ -64,5 +64,20 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task Login_with_wrong_password_returns_unauthorized()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = "missing@example.com",
+            Password = "Wrong-password-123!"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }
 
