@@ -8,8 +8,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHostedService<MonitoringBackgroundService>();
 
 var host = builder.Build();
-await using (var scope = host.Services.CreateAsyncScope())
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {
+    await using var scope = host.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().MigrateAsync(host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping);
 }
 

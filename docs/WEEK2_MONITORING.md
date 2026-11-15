@@ -31,6 +31,17 @@ Monitoring__LeaseDurationSeconds=30
 Monitoring__SupportedIntervalSeconds=60
 ```
 
+Production migrations are an explicit deployment step. Run them from the release artifact or deployment job before starting the API and worker:
+
+```bash
+export SENTINEL_CONNECTION_STRING='Host=...;Port=5432;Database=sentinel;Username=sentinel;Password=<secret>'
+dotnet ef database update \
+  --project src/Sentinel.Infrastructure/Sentinel.Infrastructure.csproj \
+  --startup-project src/Sentinel.Worker/Sentinel.Worker.csproj
+```
+
+The API and worker do not apply migrations by default. `Database:ApplyMigrations=true` is an explicit local/test-only escape hatch and should remain disabled in production.
+
 Run the independent worker host with:
 
 ```bash
@@ -41,7 +52,7 @@ export Jwt__SigningKey='<at-least-32-character-secret>'
 dotnet run --project src/Sentinel.Worker/Sentinel.Worker.csproj
 ```
 
-The worker applies pending EF migrations on startup and then begins polling. It can run separately from the API process against the same PostgreSQL database.
+The worker begins polling after the database has been migrated. It can run separately from the API process against the same PostgreSQL database.
 
 ## Query bounds
 

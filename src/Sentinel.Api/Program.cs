@@ -34,8 +34,9 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-await using (var scope = app.Services.CreateAsyncScope())
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrations"))
 {
+    await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().MigrateAsync(app.Lifetime.ApplicationStopping);
 }
 

@@ -16,6 +16,8 @@ Jwt__SigningKey       # at least 32 characters; provide through a secret store
 Jwt__AccessTokenMinutes
 ```
 
+Database migrations are deployed separately with EF tooling. API startup does not mutate the production schema.
+
 EF tooling uses `SENTINEL_CONNECTION_STRING` so migrations never need a password in source control.
 
 ## Authentication

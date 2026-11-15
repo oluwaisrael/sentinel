@@ -23,7 +23,8 @@ public sealed class ApiFactory(PostgresFixture postgresFixture) : WebApplication
                 ["Jwt:Issuer"] = "sentinel-test",
                 ["Jwt:Audience"] = "sentinel-test-client",
                 ["Jwt:SigningKey"] = "integration-test-signing-key-that-is-at-least-32-chars",
-                ["Jwt:AccessTokenMinutes"] = "30"
+                ["Jwt:AccessTokenMinutes"] = "30",
+                ["Database:ApplyMigrations"] = "true"
             });
         });
     }
