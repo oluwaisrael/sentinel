@@ -24,5 +24,14 @@ public sealed class MonitorUrlPolicyTests
     {
         MonitorUrlPolicy.IsAllowed(new Uri(value)).Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData("http://[::1]/health")]
+    [InlineData("http://[fc00::1]/health")]
+    [InlineData("http://[fe80::1]/health")]
+    public void Rejects_local_ipv6_urls(string value)
+    {
+        MonitorUrlPolicy.IsAllowed(new Uri(value)).Should().BeFalse();
+    }
 }
 
