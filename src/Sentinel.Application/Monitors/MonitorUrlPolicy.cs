@@ -34,8 +34,8 @@ public static class MonitorUrlPolicy
 
         if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
         {
-            var bytes = address.GetAddressBytes();
-            var uniqueLocal = (bytes[0] & 0xFE) == 0xFC;
+            var ipv6Bytes = address.GetAddressBytes();
+            var uniqueLocal = (ipv6Bytes[0] & 0xFE) == 0xFC;
             return !address.IsIPv6LinkLocal && !address.IsIPv6SiteLocal && !uniqueLocal;
         }
 
