@@ -23,6 +23,7 @@ public static class DependencyInjection
             .Validate(options => !string.IsNullOrWhiteSpace(options.Issuer), "JWT issuer is required.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.Audience), "JWT audience is required.")
             .Validate(options => options.SigningKey.Length >= 32, "JWT signing key must be at least 32 characters.")
+            .Validate(options => options.AccessTokenMinutes is > 0 and <= 1_440, "JWT lifetime must be between 1 minute and 24 hours.")
             .ValidateOnStart();
 
         services.AddIdentityCore<ApplicationUser>(options =>
