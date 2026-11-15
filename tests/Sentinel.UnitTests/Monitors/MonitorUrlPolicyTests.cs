@@ -39,5 +39,11 @@ public sealed class MonitorUrlPolicyTests
     {
         MonitorUrlPolicy.IsAllowed(new Uri("ftp://api.example.com/health")).Should().BeFalse();
     }
+
+    [Fact]
+    public void Rejects_cloud_metadata_hostname()
+    {
+        MonitorUrlPolicy.IsAllowed(new Uri("http://metadata.google.internal/computeMetadata/v1")).Should().BeFalse();
+    }
 }
 
