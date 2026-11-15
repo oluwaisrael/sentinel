@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -7,6 +8,7 @@ using Sentinel.Application.Monitoring;
 using Sentinel.Application.Monitors;
 using Sentinel.Infrastructure.Identity;
 using Sentinel.Infrastructure.Monitors;
+using Sentinel.Infrastructure.Monitoring;
 using Sentinel.Infrastructure.Persistence;
 
 namespace Sentinel.Infrastructure;
@@ -19,6 +21,42 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddHttpClient("monitor-checks", client =>
+            {
+                client.Timeout = Timeout.InfiniteTimeSpan;
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("SentinelMonitor/1.0");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                UseCookies = false,
+                ConnectCallback = async (context, cancellationToken) =>
+                {
+                    var addresses = await MonitorUrlPolicy.ResolvePublicAddressesAsync(
+                        context.DnsEndPoint.Host,
+                        cancellationToken);
+                    if (addresses.Count == 0)
+                    {
+                        throw new HttpRequestException("The monitor destination resolved to a restricted address.");
+                    }
+
+                    foreach (var address in addresses)
+                    {
+                        var tcpClient = new TcpClient(address.AddressFamily);
+                        try
+                        {
+                            await tcpClient.ConnectAsync(address, context.DnsEndPoint.Port, cancellationToken);
+                            return tcpClient.GetStream();
+                        }
+                        catch
+                        {
+                            tcpClient.Dispose();
+                        }
+                    }
+
+                    throw new HttpRequestException("The monitor destination could not be connected.");
+                }
+            });
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
             .Validate(options => !string.IsNullOrWhiteSpace(options.Issuer), "JWT issuer is required.")
@@ -45,6 +83,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IMonitorService, MonitorService>();
         services.AddScoped<IMonitorWorkStore, MonitorWorkStore>();
+        services.AddSingleton<IMonitorChecker, HttpMonitorChecker>();
         services.AddScoped<DatabaseInitializer>();
         return services;
     }
