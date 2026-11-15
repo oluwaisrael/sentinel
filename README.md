@@ -54,3 +54,8 @@ See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the detailed 
 
 Use the pinned SDK in `global.json`. Provide `ConnectionStrings__DefaultConnection` and `Jwt__SigningKey` through your shell, a local secret store, or Docker Compose; production secrets are intentionally absent from repository configuration. Start Docker Desktop before running the integration suite.
 
+```bash
+dotnet build Sentinel.slnx
+dotnet test Sentinel.slnx
+```
+
