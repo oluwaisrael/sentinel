@@ -27,9 +27,16 @@ public static class MonitorUrlPolicy
 
     private static bool IsPublicAddress(IPAddress address)
     {
-        if (IPAddress.IsLoopback(address) || address.IsIPv4MappedToIPv6 && IPAddress.IsLoopback(address.MapToIPv4()))
+        if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.None) || address.Equals(IPAddress.IPv6None))
         {
             return false;
+        }
+
+        if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+        {
+            var bytes = address.GetAddressBytes();
+            var uniqueLocal = (bytes[0] & 0xFE) == 0xFC;
+            return !address.IsIPv6LinkLocal && !address.IsIPv6SiteLocal && !uniqueLocal;
         }
 
         var bytes = address.MapToIPv4().GetAddressBytes();
