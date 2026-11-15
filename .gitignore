@@ -1,0 +1,26 @@
+## Build output
+bin/
+obj/
+TestResults/
+
+## IDE/user files
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Local configuration and secrets
+appsettings.Local.json
+appsettings.*.Local.json
+.env
+.env.*
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Testcontainers / local tooling
+docker-data/
+
