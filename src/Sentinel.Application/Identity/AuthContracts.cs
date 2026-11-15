@@ -2,13 +2,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Sentinel.Application.Identity;
 
-public sealed record RegisterRequest(
-    [property: Required, EmailAddress, StringLength(256)] string Email,
-    [property: Required, StringLength(128, MinimumLength = 12)] string Password);
+public sealed class RegisterRequest
+{
+    [Required, EmailAddress, StringLength(256)]
+    public string Email { get; init; } = string.Empty;
 
-public sealed record LoginRequest(
-    [property: Required, EmailAddress, StringLength(256)] string Email,
-    [property: Required] string Password);
+    [Required, StringLength(128, MinimumLength = 12)]
+    public string Password { get; init; } = string.Empty;
+}
+
+public sealed class LoginRequest
+{
+    [Required, EmailAddress, StringLength(256)]
+    public string Email { get; init; } = string.Empty;
+
+    [Required]
+    public string Password { get; init; } = string.Empty;
+}
 
 public sealed record AuthResponse(string AccessToken, DateTimeOffset ExpiresAt);
 

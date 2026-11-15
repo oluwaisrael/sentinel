@@ -17,10 +17,18 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
         using var client = factory.CreateClient();
         var email = $"user-{Guid.NewGuid():N}@example.com";
 
-        var registration = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, "Strong-password-123!"));
+        var registration = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Email = email,
+            Password = "Strong-password-123!"
+        });
         registration.StatusCode.Should().Be(HttpStatusCode.Created, await registration.Content.ReadAsStringAsync());
 
-        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, "Strong-password-123!"));
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = email,
+            Password = "Strong-password-123!"
+        });
         login.StatusCode.Should().Be(HttpStatusCode.OK);
         var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
         auth.Should().NotBeNull();
@@ -28,7 +36,13 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         var create = await client.PostAsJsonAsync(
             "/api/monitors",
-            new CreateMonitorRequest("Example API", "https://api.example.com/health", 60, 5_000));
+            new CreateMonitorRequest
+            {
+                Name = "Example API",
+                Url = "https://api.example.com/health",
+                IntervalSeconds = 60,
+                TimeoutMilliseconds = 5_000
+            });
         create.StatusCode.Should().Be(HttpStatusCode.Created);
         var monitor = await create.Content.ReadFromJsonAsync<MonitorResponse>();
         monitor.Should().NotBeNull();
