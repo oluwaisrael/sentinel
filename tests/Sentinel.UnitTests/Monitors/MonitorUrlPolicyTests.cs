@@ -33,5 +33,11 @@ public sealed class MonitorUrlPolicyTests
     {
         MonitorUrlPolicy.IsAllowed(new Uri(value)).Should().BeFalse();
     }
+
+    [Fact]
+    public void Rejects_non_http_schemes()
+    {
+        MonitorUrlPolicy.IsAllowed(new Uri("ftp://api.example.com/health")).Should().BeFalse();
+    }
 }
 
