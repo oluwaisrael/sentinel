@@ -62,6 +62,15 @@ public sealed class MonitorTests
     }
 
     [Fact]
+    public void Create_accepts_minimum_interval_boundary()
+    {
+        var monitor = DomainMonitor.Create("user-1", "API", "https://api.example.com", 30, 100);
+
+        monitor.IntervalSeconds.Should().Be(30);
+        monitor.TimeoutMilliseconds.Should().Be(100);
+    }
+
+    [Fact]
     public void Update_changes_configuration_and_state()
     {
         var monitor = DomainMonitor.Create("user-1", "API", "https://api.example.com", 60, 5_000);
