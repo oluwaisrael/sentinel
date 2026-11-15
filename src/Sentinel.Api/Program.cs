@@ -39,7 +39,14 @@ await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().MigrateAsync(app.Lifetime.ApplicationStopping);
 }
 
-app.UseExceptionHandler();
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler();
+}
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
