@@ -79,5 +79,33 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task Creating_monitor_with_private_literal_ip_returns_bad_request()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+        var email = $"url-{Guid.NewGuid():N}@example.com";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Email = email,
+            Password = "Strong-password-123!"
+        });
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = email,
+            Password = "Strong-password-123!"
+        });
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+
+        var response = await client.PostAsJsonAsync("/api/monitors", new CreateMonitorRequest
+        {
+            Name = "Internal API",
+            Url = "http://127.0.0.1:8080/health"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
 
