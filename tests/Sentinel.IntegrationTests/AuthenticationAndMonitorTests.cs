@@ -194,5 +194,19 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task Registration_validation_rejects_invalid_email()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
+        {
+            Email = "not-an-email",
+            Password = "Strong-password-123!"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
 
