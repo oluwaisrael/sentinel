@@ -154,6 +154,39 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Sentinel.Domain.Checks.CheckResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("IsHealthy")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("LatencyMs")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MonitorId", "CheckedAt");
+
+                    b.ToTable("check_results", (string)null);
+                });
+
             modelBuilder.Entity("Sentinel.Domain.Monitors.Monitor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -169,10 +202,19 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset?>("LeaseExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LeaseId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("NextCheckAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("OwnerId")
                         .IsRequired()
@@ -196,6 +238,8 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OwnerId", "Name")
                         .IsUnique();
+
+                    b.HasIndex("IsEnabled", "NextCheckAt", "LeaseExpiresAt");
 
                     b.ToTable("monitors", (string)null);
                 });
@@ -311,6 +355,15 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
                     b.HasOne("Sentinel.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sentinel.Domain.Checks.CheckResult", b =>
+                {
+                    b.HasOne("Sentinel.Domain.Monitors.Monitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
