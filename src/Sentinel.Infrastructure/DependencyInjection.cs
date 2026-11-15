@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sentinel.Application.Identity;
+using Sentinel.Application.Monitoring;
 using Sentinel.Application.Monitors;
 using Sentinel.Infrastructure.Identity;
 using Sentinel.Infrastructure.Monitors;
@@ -43,6 +44,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IMonitorService, MonitorService>();
+        services.AddScoped<IMonitorWorkStore, MonitorWorkStore>();
         services.AddScoped<DatabaseInitializer>();
         return services;
     }
