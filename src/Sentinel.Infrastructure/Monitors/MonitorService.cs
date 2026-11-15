@@ -100,7 +100,7 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
         string ownerId,
         Guid monitorId,
         DateTimeOffset? from,
-        DateTimeOffset? to,
+        DateTimeOffset? windowEnd,
         int limit,
         CancellationToken cancellationToken)
     {
@@ -115,9 +115,9 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
             query = query.Where(result => result.CheckedAt >= from.Value);
         }
 
-        if (to.HasValue)
+        if (windowEnd.HasValue)
         {
-            query = query.Where(result => result.CheckedAt <= to.Value);
+            query = query.Where(result => result.CheckedAt <= windowEnd.Value);
         }
 
         return await query
@@ -136,14 +136,14 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
         string ownerId,
         Guid monitorId,
         DateTimeOffset from,
-        DateTimeOffset to,
+        DateTimeOffset windowEnd,
         CancellationToken cancellationToken)
     {
         await GetOwnedAsync(ownerId, monitorId, cancellationToken);
 
         var query = dbContext.CheckResults
             .AsNoTracking()
-            .Where(result => result.MonitorId == monitorId && result.CheckedAt >= from && result.CheckedAt <= to);
+            .Where(result => result.MonitorId == monitorId && result.CheckedAt >= from && result.CheckedAt <= windowEnd);
         var totalChecks = await query.CountAsync(cancellationToken);
         var healthyChecks = await query.CountAsync(result => result.IsHealthy, cancellationToken);
         var averageLatency = await query
@@ -152,7 +152,7 @@ public sealed class MonitorService(ApplicationDbContext dbContext) : IMonitorSer
 
         return new MonitorStatsResponse(
             from,
-            to,
+            windowEnd,
             totalChecks,
             healthyChecks,
             totalChecks == 0 ? 0 : healthyChecks * 100d / totalChecks,

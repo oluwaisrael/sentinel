@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Sockets;
 using Sentinel.Application.Monitoring;
 using Sentinel.Application.Monitors;
 

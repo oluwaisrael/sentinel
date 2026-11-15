@@ -16,7 +16,7 @@ public interface IMonitorService
         string ownerId,
         Guid monitorId,
         DateTimeOffset? from,
-        DateTimeOffset? to,
+        DateTimeOffset? windowEnd,
         int limit,
         CancellationToken cancellationToken);
 
@@ -24,7 +24,7 @@ public interface IMonitorService
         string ownerId,
         Guid monitorId,
         DateTimeOffset from,
-        DateTimeOffset to,
+        DateTimeOffset windowEnd,
         CancellationToken cancellationToken);
 }
 
