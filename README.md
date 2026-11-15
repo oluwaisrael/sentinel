@@ -49,6 +49,7 @@ Sentinel is a production-minded API uptime monitoring and incident management pl
 Sentinel remains a modular monolith plus an independently deployable worker. Secrets are supplied through environment variables or deployment secret stores. No microservices, Kubernetes, or unnecessary AI features are in scope for the four-week build.
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the detailed milestone plan and acceptance criteria.
+Architecture and security notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md).
 
 ## Local development
 
