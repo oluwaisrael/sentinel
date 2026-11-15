@@ -8,3 +8,5 @@ Every monitor query includes the authenticated owner ID. This makes ownership pa
 
 The current scope does not include admin roles, refresh tokens, password reset email, or multi-region key rotation. Those are explicit follow-up decisions rather than accidental behavior.
 
+The integration test dependency warning was remediated by explicitly resolving SSH.NET to 2026.0.0, the patched release for the Testcontainers transitive dependency. The remaining dependency audit should be rerun in CI as part of Week 4 hardening.
+

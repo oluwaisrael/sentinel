@@ -56,6 +56,13 @@ All monitor endpoints require authentication.
 
 Monitor names are unique per user. Creating a duplicate name returns `409 Conflict`.
 
+### Check history and statistics
+
+- `GET /api/monitors/{id}/checks?from=<iso>&to=<iso>&limit=100` returns newest-first check results.
+- `GET /api/monitors/{id}/stats?from=<iso>&to=<iso>` returns total checks, healthy checks, uptime percentage, and average latency.
+
+Both endpoints enforce monitor ownership and reject windows longer than 31 days.
+
 Create/update body:
 
 ```json
