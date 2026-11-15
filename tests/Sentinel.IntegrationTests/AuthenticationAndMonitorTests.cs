@@ -107,5 +107,36 @@ public sealed class AuthenticationAndMonitorTests(PostgresFixture postgresFixtur
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task User_cannot_read_another_users_monitor()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+        var firstEmail = $"owner-{Guid.NewGuid():N}@example.com";
+        var secondEmail = $"other-{Guid.NewGuid():N}@example.com";
+        const string password = "Strong-password-123!";
+
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = firstEmail, Password = password });
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = secondEmail, Password = password });
+
+        var firstLogin = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = firstEmail, Password = password });
+        var firstAuth = await firstLogin.Content.ReadFromJsonAsync<AuthResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstAuth!.AccessToken);
+        var create = await client.PostAsJsonAsync("/api/monitors", new CreateMonitorRequest
+        {
+            Name = "Owned API",
+            Url = "https://api.example.com/health"
+        });
+        var monitor = await create.Content.ReadFromJsonAsync<MonitorResponse>();
+
+        var secondLogin = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = secondEmail, Password = password });
+        var secondAuth = await secondLogin.Content.ReadFromJsonAsync<AuthResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", secondAuth!.AccessToken);
+
+        var response = await client.GetAsync($"/api/monitors/{monitor!.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
 
