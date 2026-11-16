@@ -10,3 +10,5 @@ The current scope does not include admin roles, refresh tokens, password reset e
 
 The integration test dependency warning was remediated by explicitly resolving SSH.NET to 2026.0.0, the patched release for the Testcontainers transitive dependency. The remaining dependency audit should be rerun in CI as part of Week 4 hardening.
 
+SMTP credentials are configuration-only. Notification event IDs are stable across retries, but SMTP delivery is at-least-once and may duplicate if a crash occurs after provider acceptance and before the outbox status update.
+

@@ -65,6 +65,10 @@ Monitor names are unique per user. Creating a duplicate name returns `409 Confli
 
 Both endpoints enforce monitor ownership and reject windows longer than 31 days.
 
+### Incident history
+
+`GET /api/monitors/{id}/incidents?from=<iso>&to=<iso>&limit=100` returns owner-scoped incident episodes, newest first. The date window is capped at 31 days and `limit` is capped at 500.
+
 Create/update body:
 
 ```json
