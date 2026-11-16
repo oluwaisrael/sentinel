@@ -1,0 +1,86 @@
+services:
+  postgres:
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 1536M
+        reservations:
+          memory: 512M
+    logging: &production-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  migrate:
+    profiles: [migration]
+    logging: *production-logging
+
+  api:
+    depends_on: []
+    ports: !reset []
+    environment:
+      Cors__AllowedOrigins__0: https://${DOMAIN:?DOMAIN must be set}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 768M
+        reservations:
+          memory: 256M
+    logging: *production-logging
+
+  worker:
+    depends_on: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 768M
+        reservations:
+          memory: 256M
+    logging: *production-logging
+
+  web:
+    ports: !reset []
+    build:
+      args:
+        VITE_API_BASE_URL: ""
+    logging: *production-logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN must be set}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL must be set}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--no-verbose", "http://localhost:2019/config/ "]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          memory: 64M
+    logging: *production-logging
+
+volumes:
+  caddy-data:
+  caddy-config:
