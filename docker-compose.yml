@@ -37,7 +37,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:?JWT_ISSUER must be set}
       Jwt__Audience: ${JWT_AUDIENCE:?JWT_AUDIENCE must be set}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY must be set}
-      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:
