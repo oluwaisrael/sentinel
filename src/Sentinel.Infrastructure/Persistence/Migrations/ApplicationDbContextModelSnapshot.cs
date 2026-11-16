@@ -187,11 +187,84 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
                     b.ToTable("check_results", (string)null);
                 });
 
+            modelBuilder.Entity("Sentinel.Domain.Incidents.Incident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("LastTransitionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RecoveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MonitorId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Open'");
+
+                    b.ToTable("incidents", (string)null);
+                });
+
+            modelBuilder.Entity("Sentinel.Domain.Incidents.IncidentTransition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CheckResultId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TransitionType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckResultId");
+
+                    b.HasIndex("IncidentId", "TransitionType")
+                        .IsUnique();
+
+                    b.HasIndex("MonitorId", "OccurredAt");
+
+                    b.ToTable("incident_transitions", (string)null);
+                });
+
             modelBuilder.Entity("Sentinel.Domain.Monitors.Monitor", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<int>("ConsecutiveFailureCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ConsecutiveSuccessCount")
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -242,6 +315,63 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
                     b.HasIndex("IsEnabled", "NextCheckAt", "LeaseExpiresAt");
 
                     b.ToTable("monitors", (string)null);
+                });
+
+            modelBuilder.Entity("Sentinel.Domain.Notifications.NotificationOutbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("LeaseExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LeaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncidentId", "EventType")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextAttemptAt", "LeaseExpiresAt");
+
+                    b.ToTable("notification_outbox", (string)null);
                 });
 
             modelBuilder.Entity("Sentinel.Infrastructure.Identity.ApplicationUser", b =>
@@ -364,6 +494,39 @@ namespace Sentinel.Infrastructure.Persistence.Migrations
                     b.HasOne("Sentinel.Domain.Monitors.Monitor", null)
                         .WithMany()
                         .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sentinel.Domain.Incidents.Incident", b =>
+                {
+                    b.HasOne("Sentinel.Domain.Monitors.Monitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sentinel.Domain.Incidents.IncidentTransition", b =>
+                {
+                    b.HasOne("Sentinel.Domain.Checks.CheckResult", null)
+                        .WithMany()
+                        .HasForeignKey("CheckResultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sentinel.Domain.Incidents.Incident", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Sentinel.Domain.Notifications.NotificationOutbox", b =>
+                {
+                    b.HasOne("Sentinel.Domain.Incidents.Incident", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

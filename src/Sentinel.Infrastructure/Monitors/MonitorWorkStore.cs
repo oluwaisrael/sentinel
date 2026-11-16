@@ -3,12 +3,14 @@ using Microsoft.Extensions.Options;
 using Sentinel.Application.Monitoring;
 using Sentinel.Domain.Checks;
 using Sentinel.Infrastructure.Persistence;
+using Sentinel.Infrastructure.Monitoring;
 
 namespace Sentinel.Infrastructure.Monitors;
 
 public sealed class MonitorWorkStore(
     ApplicationDbContext dbContext,
-    IOptions<MonitoringOptions> options) : IMonitorWorkStore
+    IOptions<MonitoringOptions> options,
+    IncidentStateProcessor incidentStateProcessor) : IMonitorWorkStore
 {
     private readonly MonitoringOptions monitoringOptions = options.Value;
 
@@ -67,14 +69,16 @@ public sealed class MonitorWorkStore(
             return false;
         }
 
-        dbContext.CheckResults.Add(new CheckResult(
+        var checkResult = new CheckResult(
             Guid.NewGuid(),
             lease.MonitorId,
             outcome.CheckedAt,
             outcome.StatusCode,
             outcome.LatencyMs,
             outcome.IsHealthy,
-            outcome.ErrorType));
+            outcome.ErrorType);
+        dbContext.CheckResults.Add(checkResult);
+        await incidentStateProcessor.ApplyAsync(monitor, checkResult, cancellationToken);
         monitor.CompleteLease(lease.LeaseId, nextCheckAt);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

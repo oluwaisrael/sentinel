@@ -4,11 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Sentinel.Application.Identity;
+using Sentinel.Application.Incidents;
 using Sentinel.Application.Monitoring;
+using Sentinel.Application.Notifications;
 using Sentinel.Application.Monitors;
 using Sentinel.Infrastructure.Identity;
+using Sentinel.Infrastructure.Incidents;
 using Sentinel.Infrastructure.Monitors;
 using Sentinel.Infrastructure.Monitoring;
+using Sentinel.Infrastructure.Notifications;
 using Sentinel.Infrastructure.Persistence;
 
 namespace Sentinel.Infrastructure;
@@ -27,6 +31,8 @@ public static class DependencyInjection
             .Validate(options => options.MaxConcurrency is >= 1 and <= 32, "Monitoring concurrency must be between 1 and 32.")
             .Validate(options => options.LeaseDurationSeconds is >= 10 and <= 300, "Monitoring lease must be between 10s and 5m.")
             .Validate(options => options.SupportedIntervalSeconds == 60, "Only 60-second monitoring intervals are currently supported.")
+            .Validate(options => options.IncidentFailureThreshold == 3, "Incident failure threshold must be 3.")
+            .Validate(options => options.IncidentRecoveryThreshold == 2, "Incident recovery threshold must be 2.")
             .ValidateOnStart();
         services.AddHttpClient("monitor-checks", client =>
             {
@@ -71,6 +77,15 @@ public static class DependencyInjection
             .Validate(options => options.SigningKey.Length >= 32, "JWT signing key must be at least 32 characters.")
             .Validate(options => options.AccessTokenMinutes is > 0 and <= 1_440, "JWT lifetime must be between 1 minute and 24 hours.")
             .ValidateOnStart();
+        services.AddOptions<NotificationOptions>()
+            .Bind(configuration.GetSection(NotificationOptions.SectionName))
+            .Validate(options => options.PollIntervalMilliseconds is >= 100 and <= 60_000, "Notification poll interval must be between 100ms and 60s.")
+            .Validate(options => options.MaxConcurrency is >= 1 and <= 16, "Notification concurrency must be between 1 and 16.")
+            .Validate(options => options.LeaseDurationSeconds is >= 10 and <= 600, "Notification lease must be between 10s and 10m.")
+            .Validate(options => options.MaxAttempts is >= 1 and <= 20, "Notification max attempts must be between 1 and 20.")
+            .Validate(options => options.RetryBaseDelaySeconds is >= 1 and <= 3_600, "Notification retry delay must be between 1s and 1h.")
+            .ValidateOnStart();
+        services.AddOptions<EmailOptions>().Bind(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddIdentityCore<ApplicationUser>(options =>
             {
@@ -89,7 +104,11 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IMonitorService, MonitorService>();
+        services.AddScoped<IIncidentService, IncidentService>();
         services.AddScoped<IMonitorWorkStore, MonitorWorkStore>();
+        services.AddScoped<IncidentStateProcessor>();
+        services.AddScoped<INotificationWorkStore, NotificationWorkStore>();
+        services.AddSingleton<IEmailProvider, SmtpEmailProvider>();
         services.AddSingleton<IMonitorChecker, HttpMonitorChecker>();
         services.AddScoped<DatabaseInitializer>();
         return services;
