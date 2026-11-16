@@ -114,4 +114,4 @@ The production URL policy remains active during demonstrations; use a controlled
 
 See [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md), and [docs/WEEK3_INCIDENTS_NOTIFICATIONS.md](docs/WEEK3_INCIDENTS_NOTIFICATIONS.md).
 
-For the planned single-VM rollout, see [docs/HETZNER_DEPLOYMENT.md](docs/HETZNER_DEPLOYMENT.md) and run [docs/PRODUCTION_SMOKE_TEST.md](docs/PRODUCTION_SMOKE_TEST.md) after approval. Deployment uses Caddy for automatic HTTPS, a separate migration step, loopback-only PostgreSQL, bounded Docker resources, and guarded backup/restore scripts.
+For the planned Oracle Cloud Always Free rollout, see [docs/ORACLE_DEPLOYMENT.md](docs/ORACLE_DEPLOYMENT.md) and run [docs/PRODUCTION_SMOKE_TEST.md](docs/PRODUCTION_SMOKE_TEST.md) after approval. Deployment uses Caddy for automatic HTTPS, a separate migration step, private PostgreSQL, bounded Docker resources, and guarded backup/restore scripts.
