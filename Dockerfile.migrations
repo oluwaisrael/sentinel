@@ -3,5 +3,5 @@ WORKDIR /src
 COPY . .
 RUN dotnet tool install --global dotnet-ef --version 10.0.4
 ENV PATH="/root/.dotnet/tools:${PATH}"
-RUN dotnet restore Sentinel.slnx
+RUN dotnet restore src/Sentinel.Worker/Sentinel.Worker.csproj
 ENTRYPOINT ["dotnet", "ef", "database", "update", "--project", "src/Sentinel.Infrastructure/Sentinel.Infrastructure.csproj", "--startup-project", "src/Sentinel.Worker/Sentinel.Worker.csproj"]
