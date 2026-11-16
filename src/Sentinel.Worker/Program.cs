@@ -6,6 +6,7 @@ using Sentinel.Infrastructure.Persistence;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHostedService<MonitoringBackgroundService>();
+builder.Services.AddHostedService<NotificationBackgroundService>();
 
 var host = builder.Build();
 if (builder.Configuration.GetValue<bool>("Database:ApplyMigrations"))
