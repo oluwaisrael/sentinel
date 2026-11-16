@@ -4,7 +4,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.75"
+          cpus: "0.65"
           memory: 1536M
         reservations:
           memory: 512M
@@ -26,7 +26,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.50"
+          cpus: "0.45"
           memory: 768M
         reservations:
           memory: 256M
@@ -37,7 +37,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.50"
+          cpus: "0.45"
           memory: 768M
         reservations:
           memory: 256M
@@ -49,6 +49,13 @@ services:
       args:
         VITE_API_BASE_URL: ""
     logging: *production-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          memory: 64M
 
   caddy:
     image: caddy:2.10-alpine
@@ -75,7 +82,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
+          cpus: "0.20"
           memory: 256M
         reservations:
           memory: 64M
