@@ -46,7 +46,7 @@ public sealed class MonitoringBackgroundService(
                 var recorded = await store.RecordCheckAsync(lease, outcome, nextCheckAt, stoppingToken);
                 if (!recorded)
                 {
-                    logger.LogWarning("Skipped check result for monitor {MonitorId}; lease {LeaseId} was lost.", lease.MonitorId, lease.LeaseId);
+                    WorkerLog.LeaseLost(logger, lease.MonitorId, lease.LeaseId);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -55,7 +55,7 @@ public sealed class MonitoringBackgroundService(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Monitoring worker iteration failed; lease recovery will retry the monitor.");
+                WorkerLog.MonitoringIterationFailed(logger, exception);
                 await Task.Delay(monitoringOptions.PollIntervalMilliseconds, stoppingToken);
             }
         }

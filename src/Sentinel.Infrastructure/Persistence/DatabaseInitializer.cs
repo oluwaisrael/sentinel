@@ -9,7 +9,7 @@ public sealed class DatabaseInitializer(
 {
     public async Task MigrateAsync(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Applying database migrations");
+        DatabaseLog.ApplyingMigrations(logger);
         await dbContext.Database.MigrateAsync(cancellationToken);
     }
 }

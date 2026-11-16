@@ -69,7 +69,7 @@ public sealed class NotificationBackgroundService(
                         DateTimeOffset.UtcNow.AddSeconds(delaySeconds),
                         exception.Message,
                         stoppingToken);
-                    logger.LogError(exception, "Notification delivery failed for event {EventId}; retry scheduled.", lease.Id);
+                    WorkerLog.NotificationDeliveryFailed(logger, exception, lease.Id);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -78,7 +78,7 @@ public sealed class NotificationBackgroundService(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Notification worker iteration failed; the outbox lease will recover.");
+                WorkerLog.NotificationIterationFailed(logger, exception);
                 await Task.Delay(notificationOptions.PollIntervalMilliseconds, stoppingToken);
             }
         }
