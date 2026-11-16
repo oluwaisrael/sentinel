@@ -16,6 +16,7 @@ appsettings.Local.json
 appsettings.*.Local.json
 .env
 .env.*
+!.env.example
 
 ## OS files
 .DS_Store
