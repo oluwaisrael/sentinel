@@ -2,6 +2,8 @@
 bin/
 obj/
 TestResults/
+web/playwright-report/
+web/test-results/
 
 ## IDE/user files
 .idea/
