@@ -10,6 +10,9 @@ using Sentinel.Application.Monitoring;
 using Sentinel.Application.Monitors;
 using Sentinel.Domain.Checks;
 using Sentinel.Domain.Monitors;
+using Sentinel.Domain.Incidents;
+using Sentinel.Domain.Notifications;
+using Sentinel.Application.Notifications;
 using Sentinel.Infrastructure.Persistence;
 using Sentinel.IntegrationTests.Infrastructure;
 using DomainMonitor = Sentinel.Domain.Monitors.Monitor;
@@ -116,14 +119,192 @@ public sealed class MonitoringPersistenceTests(PostgresFixture postgresFixture) 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task Three_failures_open_one_incident_and_two_successes_recover_it()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        var monitorId = await SeedMonitorAsync(factory);
+        var checkTime = DateTimeOffset.UtcNow.AddMinutes(1);
+
+        for (var index = 0; index < 3; index++)
+        {
+            await RecordAsync(factory, monitorId, checkTime, false);
+            checkTime = checkTime.AddMinutes(1);
+        }
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Incidents.CountAsync(incident => incident.MonitorId == monitorId)).Should().Be(1);
+            (await db.Incidents.CountAsync(incident => incident.MonitorId == monitorId && incident.Status == IncidentStatuses.Open)).Should().Be(1);
+            (await db.IncidentTransitions.CountAsync(transition => transition.MonitorId == monitorId)).Should().Be(1);
+            (await db.NotificationOutbox.CountAsync(notification => notification.MonitorId == monitorId)).Should().Be(1);
+        }
+
+        for (var index = 0; index < 2; index++)
+        {
+            await RecordAsync(factory, monitorId, checkTime, false);
+            checkTime = checkTime.AddMinutes(1);
+        }
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Incidents.CountAsync(incident => incident.MonitorId == monitorId)).Should().Be(1);
+            (await db.NotificationOutbox.CountAsync(notification => notification.MonitorId == monitorId)).Should().Be(1);
+        }
+
+        for (var index = 0; index < 2; index++)
+        {
+            await RecordAsync(factory, monitorId, checkTime, true);
+            checkTime = checkTime.AddMinutes(1);
+        }
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Incidents.CountAsync(incident => incident.MonitorId == monitorId && incident.Status == IncidentStatuses.Open)).Should().Be(0);
+            (await db.IncidentTransitions.CountAsync(transition => transition.MonitorId == monitorId)).Should().Be(2);
+            (await db.NotificationOutbox.CountAsync(notification => notification.MonitorId == monitorId)).Should().Be(2);
+        }
+
+        for (var index = 0; index < 3; index++)
+        {
+            await RecordAsync(factory, monitorId, checkTime, false);
+            checkTime = checkTime.AddMinutes(1);
+        }
+
+        await using var finalScope = factory.Services.CreateAsyncScope();
+        var finalDb = finalScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await finalDb.Incidents.CountAsync(incident => incident.MonitorId == monitorId)).Should().Be(2);
+        (await finalDb.Incidents.CountAsync(incident => incident.MonitorId == monitorId && incident.Status == IncidentStatuses.Open)).Should().Be(1);
+        (await finalDb.NotificationOutbox.CountAsync(notification => notification.MonitorId == monitorId)).Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Notification_claim_is_concurrent_safe_and_expired_claim_recovers()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        var monitorId = await SeedMonitorWithUserAsync(factory);
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var incident = Incident.Open(monitorId, DateTimeOffset.UtcNow);
+            db.Incidents.Add(incident);
+            db.NotificationOutbox.Add(new NotificationOutbox(
+                Guid.NewGuid(), incident.Id, monitorId, NotificationEventTypes.IncidentOpened, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        var claimTime = DateTimeOffset.UtcNow.AddSeconds(1);
+        await using var firstScope = factory.Services.CreateAsyncScope();
+        await using var secondScope = factory.Services.CreateAsyncScope();
+        var firstStore = firstScope.ServiceProvider.GetRequiredService<INotificationWorkStore>();
+        var secondStore = secondScope.ServiceProvider.GetRequiredService<INotificationWorkStore>();
+        var claims = await Task.WhenAll(
+            firstStore.TryClaimDueAsync(claimTime, TimeSpan.FromSeconds(30), 5, CancellationToken.None),
+            secondStore.TryClaimDueAsync(claimTime, TimeSpan.FromSeconds(30), 5, CancellationToken.None));
+
+        claims.Count(claim => claim is not null).Should().Be(1);
+        var claim = claims.Single(item => item is not null)!;
+        var recovered = await firstStore.TryClaimDueAsync(claimTime.AddSeconds(31), TimeSpan.FromSeconds(30), 5, CancellationToken.None);
+        recovered.Should().NotBeNull();
+        recovered!.AttemptCount.Should().Be(2);
+
+        var failed = await firstStore.MarkFailedAsync(
+            recovered,
+            claimTime.AddSeconds(32),
+            "provider unavailable",
+            CancellationToken.None);
+        failed.Should().BeTrue();
+        var retried = await firstStore.TryClaimDueAsync(
+            claimTime.AddSeconds(33), TimeSpan.FromSeconds(30), 5, CancellationToken.None);
+        retried.Should().NotBeNull();
+        retried!.AttemptCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Incident_history_is_owner_scoped()
+    {
+        await using var factory = new ApiFactory(postgresFixture);
+        using var client = factory.CreateClient();
+        var email = $"incident-owner-{Guid.NewGuid():N}@example.com";
+        const string password = "Strong-password-123!";
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = email, Password = password });
+        var auth = await AuthenticateAsync(client, email, password);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var create = await client.PostAsJsonAsync("/api/monitors", new CreateMonitorRequest
+        {
+            Name = "Incident API",
+            Url = "https://api.example.com/health",
+            IntervalSeconds = 60
+        });
+        var monitor = await create.Content.ReadFromJsonAsync<MonitorResponse>();
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Incidents.Add(Incident.Open(monitor!.Id, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        var incidents = await client.GetFromJsonAsync<List<Sentinel.Application.Incidents.IncidentResponse>>(
+            $"/api/monitors/{monitor!.Id}/incidents");
+        incidents.Should().ContainSingle();
+
+        using var otherClient = factory.CreateClient();
+        var otherEmail = $"incident-other-{Guid.NewGuid():N}@example.com";
+        await otherClient.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = otherEmail, Password = password });
+        var otherAuth = await AuthenticateAsync(otherClient, otherEmail, password);
+        otherClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherAuth.AccessToken);
+        var forbidden = await otherClient.GetAsync($"/api/monitors/{monitor.Id}/incidents");
+        forbidden.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private static async Task<Guid> SeedMonitorAsync(WebApplicationFactory<Program> factory)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Monitors.ExecuteUpdateAsync(update => update.SetProperty(monitor => monitor.IsEnabled, false));
         var monitor = DomainMonitor.Create("scheduler-owner", $"Scheduler-{Guid.NewGuid():N}", "https://api.example.com", 60, 5_000);
         db.Monitors.Add(monitor);
         await db.SaveChangesAsync();
         return monitor.Id;
+    }
+
+    private static async Task<Guid> SeedMonitorWithUserAsync(WebApplicationFactory<Program> factory)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Monitors.ExecuteUpdateAsync(update => update.SetProperty(monitor => monitor.IsEnabled, false));
+        var user = new Sentinel.Infrastructure.Identity.ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = $"notification-{Guid.NewGuid():N}@example.com",
+            Email = $"notification-{Guid.NewGuid():N}@example.com"
+        };
+        db.Users.Add(user);
+        var monitor = DomainMonitor.Create(user.Id, $"Notification-{Guid.NewGuid():N}", "https://api.example.com", 60, 5_000);
+        db.Monitors.Add(monitor);
+        await db.SaveChangesAsync();
+        return monitor.Id;
+    }
+
+    private static async Task RecordAsync(
+        WebApplicationFactory<Program> factory,
+        Guid monitorId,
+        DateTimeOffset now,
+        bool healthy)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var store = scope.ServiceProvider.GetRequiredService<IMonitorWorkStore>();
+        var lease = await store.TryClaimDueAsync(now, TimeSpan.FromMinutes(1), CancellationToken.None);
+        lease.Should().NotBeNull();
+        await store.RecordCheckAsync(
+            lease!,
+            new MonitorCheckOutcome(now, healthy ? 200 : 503, 100, healthy, CheckErrorTypes.None),
+            now.AddMinutes(1),
+            CancellationToken.None);
     }
 
     private static async Task<AuthResponse> AuthenticateAsync(HttpClient client, string email, string password)

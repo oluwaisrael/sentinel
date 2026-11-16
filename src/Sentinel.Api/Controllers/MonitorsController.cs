@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sentinel.Application.Common;
 using Sentinel.Application.Monitors;
+using Sentinel.Application.Incidents;
 using Sentinel.Domain.Common;
 
 namespace Sentinel.Api.Controllers;
@@ -10,7 +11,9 @@ namespace Sentinel.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/monitors")]
-public sealed class MonitorsController(IMonitorService monitorService) : ControllerBase
+public sealed class MonitorsController(
+    IMonitorService monitorService,
+    IIncidentService incidentService) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<MonitorResponse>>> List(CancellationToken cancellationToken)
@@ -114,6 +117,37 @@ public sealed class MonitorsController(IMonitorService monitorService) : Control
                 CurrentUserId(), id, windowStart, windowEnd, cancellationToken));
         }
         catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpGet("{id:guid}/incidents")]
+    public async Task<IActionResult> Incidents(
+        Guid id,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 500)
+        {
+            return BadRequest("limit must be between 1 and 500.");
+        }
+
+        var windowEnd = to ?? DateTimeOffset.UtcNow;
+        var windowStart = from ?? windowEnd.AddDays(-31);
+        if (windowStart > windowEnd || windowEnd - windowStart > TimeSpan.FromDays(31))
+        {
+            return BadRequest("The incident history window must be no longer than 31 days.");
+        }
+
+        try
+        {
+            return Ok(await incidentService.ListAsync(
+                CurrentUserId(), id, windowStart, windowEnd, limit, cancellationToken));
+        }
+        catch (KeyNotFoundException)
         {
             return NotFound();
         }
