@@ -18,4 +18,3 @@ ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 USER root
 ENTRYPOINT ["/usr/local/bin/api-entrypoint.sh"]
-ENTRYPOINT ["dotnet", "Sentinel.Api.dll"]
