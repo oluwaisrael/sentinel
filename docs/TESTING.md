@@ -14,7 +14,7 @@ Run the suites with:
 dotnet test Sentinel.slnx
 ```
 
-Docker Desktop must be running for the integration suite. NuGet currently reports a high-severity advisory in Testcontainers' transitive SSH.NET dependency; this is test tooling only and remains a tracked dependency risk for the next package review.
+Docker Desktop must be running for the integration suite. The Testcontainers SSH.NET advisory is remediated by the explicit SSH.NET 2026.0.0 override; CI also runs NuGet audit mode with a high-severity failure threshold.
 
 To create a new migration, set `SENTINEL_CONNECTION_STRING` in the shell and run `dotnet ef migrations add <Name>` against the Infrastructure project. The design-time factory intentionally fails when that variable is absent.
 

@@ -2,7 +2,7 @@
 
 All request and response bodies are JSON. Validation failures return `400 Bad Request`; unauthenticated requests return `401`; a monitor that is not owned by the current user behaves as not found and returns `404`.
 
-`GET /health` is an unauthenticated liveness endpoint and returns `{ "status": "ok" }` when the API process is running.
+`GET /health` is an unauthenticated liveness endpoint and returns `{ "status": "ok" }` when the API process is running. `GET /health/ready` verifies database connectivity and returns `503` when the API cannot reach PostgreSQL.
 
 ## Configuration
 

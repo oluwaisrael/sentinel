@@ -12,3 +12,5 @@ The integration test dependency warning was remediated by explicitly resolving S
 
 SMTP credentials are configuration-only. Notification event IDs are stable across retries, but SMTP delivery is at-least-once and may duplicate if a crash occurs after provider acceptance and before the outbox status update.
 
+Production API access is protected by a configurable CORS allowlist and an IP-based fixed-window rate limiter. PostgreSQL is bound to localhost only in local Compose and is not published as a public service.
+
