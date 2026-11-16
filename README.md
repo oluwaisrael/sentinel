@@ -52,6 +52,17 @@ npm run dev
 
 Set `VITE_API_BASE_URL` if the API is not at `http://localhost:8080`.
 
+For a safe local SMTP verification, start Mailpit without sending messages to
+real recipients:
+
+```bash
+EMAIL_HOST=mailpit EMAIL_PORT=1025 EMAIL_FROM=alerts@sentinel.local \
+  docker compose --profile email-test up --build
+```
+
+Open `http://localhost:8025` to inspect captured messages. Mailpit is an
+optional local profile and is not a production email provider.
+
 ## Run backend tests
 
 The pinned SDK is in `global.json`. Docker Desktop must be running for PostgreSQL integration tests.

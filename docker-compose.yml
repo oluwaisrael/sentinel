@@ -85,6 +85,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  mailpit:
+    image: axllent/mailpit:v1.21
+    profiles: [email-test]
+    ports:
+      - "127.0.0.1:${SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8025/api/v1/info"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
 volumes:
   sentinel-postgres:
   sentinel-api-keys:
