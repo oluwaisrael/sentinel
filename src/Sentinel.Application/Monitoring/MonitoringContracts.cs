@@ -22,6 +22,10 @@ public sealed class MonitoringOptions
     public int LeaseDurationSeconds { get; init; } = 30;
 
     public int SupportedIntervalSeconds { get; init; } = 60;
+
+    public int IncidentFailureThreshold { get; init; } = 3;
+
+    public int IncidentRecoveryThreshold { get; init; } = 2;
 }
 
 public sealed record MonitorLease(

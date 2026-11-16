@@ -46,6 +46,24 @@ public sealed class Monitor
 
     public DateTimeOffset? LeaseExpiresAt { get; private set; }
 
+    public int ConsecutiveFailureCount { get; private set; }
+
+    public int ConsecutiveSuccessCount { get; private set; }
+
+    public void RecordCheck(bool isHealthy)
+    {
+        if (isHealthy)
+        {
+            ConsecutiveFailureCount = 0;
+            ConsecutiveSuccessCount++;
+        }
+        else
+        {
+            ConsecutiveSuccessCount = 0;
+            ConsecutiveFailureCount++;
+        }
+    }
+
     public static Monitor Create(string ownerId, string name, string url, int intervalSeconds, int timeoutMilliseconds)
     {
         ValidateOwner(ownerId);
